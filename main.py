@@ -5,9 +5,7 @@ from pydantic import BaseModel
 app = FastAPI()
 
 origins = [
-    "httpsa://nea.tomdinning.com",
-    "http://localhost",
-    "http://localhost:8080",
+    "httpsa://nea.tomdinning.com"
 ]
 
 app.add_middleware(
