@@ -26,7 +26,7 @@ class ForecastRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"Hello": "Wrld"}
 
 @app.post("/forecast")
 def forecast(request: ForecastRequest):
