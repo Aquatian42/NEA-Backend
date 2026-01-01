@@ -1,8 +1,7 @@
+import time
 import matplotlib.pyplot as plt
 from utils import *
 import csv
-
-temperatures = [13.9,13.7,13.8,13.6,13.9,14.1,13.8,14.5,15.8,17.1,18.3,19,19.1,19,18.8,18.2,17.7,18.6,18.3,17.2,16.3,16,15.3,14.9,14.1,13.3,12.7,12.4,12.2,11.9,12,12.8,13.9,15.4,16.7,17.7,18,17.5,17.6,17.7,17.5,16.9,17.1,16.6,16,15.6,15.4,15.4,15.3,15.5,15.6,15.4,14.9,14.5,14.3,14.3,14.9,16.7,18.8,19.8,20.5,20.4,18.9,16.8,17.2,18.2,17.9,17.1,16.3,15.9,15.4,14.9,14.4,14,13.6,13.1,12.6,12.2,12.2,12.9,13.4,14,14.1,14.5,15.1,14.6,14.9,15.5,15.7,15.9,15.6,14.5,13.9,13.6,13.2,12.7,11.9,11.4,11.1,11.1,11,11,10.9,11.6,13,14.8,16.1,17,18,19,19.1,19.4,19.5,19.1,19,18.3,17.5,17.4,16.6,15.9,15.4,14.9,14.7,13.9,14,13.9,13.4,13.5,14.4,15.6,17.3,18.8,20.6,21.4,21.9,22.2,22.1,21.6,20.7,19.3,18.2,17.4,16.6,16,16,15.8,15.5,15.3,15,14.9,14.9,15.5,16.8,18.6,19.8,20.8,21.2,21.2,22.4,22.9,23,23,22.2,20.7,19.2,18.4,17.8,16.9,15.2,14.6,13.8,13.4,13.6,13.5,12.7,12.9,13.9,15,16,16.8,18,18.7,19.6,19.4,19.5,15.3,16.3,15.6,15.3,14.4,13.5,12.9,12.6,12.3,11.9,11.7,11.2,10.8,10.3,11.1,12.4,14.5,16.1,17.1,18.6,19.2,20,20.4,20.2,19.5,18.5,17.7,16.8,16.2,15.5,15,14.8,14.4,14.1,13.6,13.4,13.2,13,13,13.9,14.6,15.4,16,17.5,18.8,17.8,16.7,16.6,16.5,16,15.2,15.5,15.1,14.2,13.5,13,12.7,12.4,11.9,11.4,11.1,11.4,12,13.2,14.4,15.5,15.9,15.3,14.4,15.9,15.5,15.7,15.1,14,13.3,12.9,12.3,12.2,11.9,11.4,11,10.7,10.6,10.6,10.3,10.3,10.7,11.9,13.4,14.5,15.7,16.8,17.2,17.2,17.6,15.7,16,15.4,14.7,13.7,13.1,12.5,11.8,11.8,11.7,11.7,11.4,11.3,11.4,11.5,11.7,12.6,13.9,14.7,15.4,16.2,15.2,16.3,15.5,15.3,15.7,15.1,14,13.2,12.6,12.1,11.6,11,10.3,9.9,9.6,9.4,9.1,8.9,9.4,10.5,12,13.1,13.8,14.2,13.8,14.3,13.4,13,13.1,13.3,14.3,15.5,16.5,15.9,15.5]
 
 csvFile = csv.reader(open(r"C:\Users\tomto\Data\School\Computer-Science\NEA\1975\Bleneau_Festiniogg.csv", mode="r"))
 csvList = []
@@ -28,6 +27,8 @@ for line in csvList:
     wind_gusts_10m.append(float(line[11]))
     cloud_cover.append(float(line[12]))
     pressure.append(float(line[13]))
+temperatures = temperatures[0:]
+
 
 
 class Holt_winters:
@@ -42,33 +43,54 @@ class Holt_winters:
 
     def do_smoothing(self):
         #must be between 0 and 1 for all
-        self.alpha = 0.2
-        self.beta = 0.002
-        self.gamma = 0.1
-        # return #remove!!!!!
+             
+        best_mse = float('inf')
+        best_params = {}
+        
+        datalist = chunks_of_list(self.past_data,50,1680)
 
-        mserrors = []
-        x = 0
-        while x <= 1:
-            x += 0.1
-            y = 0
-            while y <= 0.1:
-                y += 0.01
-                z = 0
-                while z <= 1:
-                    z += 0.1
-                    self.alpha,self.beta,self.gamma = x,y,z
+        # test out combinations of coefficients 
 
-                    self.data_to_forecast = self.past_data[0:2400]
-                    self.correct_data = self.past_data[2400:2400+self.forecast_length]
+        y = 0
+        x = 0.5
+        z = 0.1
+        while y < 1:
+            y += 0.1
+            self.beta = z
+            self.alpha,self.beta,self.gamma = x,y,z
+            mserrors = []
+            for data in datalist:
+                self.data_to_forecast = data[:-self.forecast_length]
+                self.correct_data = data[-self.forecast_length:]
+                # reset for each set of parameters
+                self.smoothed_data = []
+                self.forecast_data = []
 
-                    self.smooth_past_data()
+                self.smooth_past_data()
+                current_mse = mse(self.forecast_data,self.correct_data)
+                mserrors.append(current_mse)
 
-                    mserrors.append(mse(self.forecast_data,self.correct_data))
-        print(mserrors)
+            avg_mserror = mean(mserrors)
+            current_mse = avg_mserror
+            if current_mse < best_mse:
+
+                best_mse = current_mse
+                best_params = {'alpha': x, 'beta': y, 'gamma': z}
+        
+        print(f"Best mse: {best_mse}")
+        print(f"Best Parameters: {best_params}")
+        # Rerun with best parameters for plotting
+        if best_params:
+            self.alpha = best_params['alpha']
+            self.beta = best_params['beta']
+            self.gamma = best_params['gamma']
+            self.data_to_forecast = self.past_data[:]
+            self.smoothed_data = []
+            self.forecast_data = []
+            self.smooth_past_data()
     
     def initialise_components(self):
-         #https://robjhyndman.com/hyndsight/hw-initialization/
+        #https://robjhyndman.com/hyndsight/hw-initialization/
         initialisation_data = self.past_data[:self.season_length * 2] 
 
         #level is set to the average of the first season's levels
@@ -78,20 +100,18 @@ class Holt_winters:
         slopeslist = []
         for i in range(self.season_length):
             slopeslist.append(initialisation_data[i+self.season_length] - initialisation_data[i])
-        initial_slope = mean(slopeslist)
+        # The initial slope is the average change per time step
+        initial_slope = mean(slopeslist) / self.season_length
 
         #seasonality needs to be defined for a season's worth of data - using additive not multiplicative
         initial_seasonalcomponents = []
-        grand_mean = mean(self.past_data)
+        # Subtract the mean of the first season (initial_level) to get seasonal component
         for i in range(self.season_length):
-            initial_seasonalcomponents.append(initialisation_data[i]-grand_mean)
+            initial_seasonalcomponents.append(initialisation_data[i] - initial_level)
 
         self.initial_level = initial_level
         self.initial_slope = initial_slope
         self.initial_seasonalcomponents = initial_seasonalcomponents.copy()
-
-
-
 
     def smooth_past_data(self):
         self.initialise_components()
@@ -100,15 +120,20 @@ class Holt_winters:
         previous_trend = self.initial_slope
         
         # not all seasonals need to be stored - just the seasonal length worth
-        current_seasonal_components = self.initial_seasonalcomponents
+        current_seasonal_components = self.initial_seasonalcomponents.copy()
         
-        seasonal_index = 0
+        # smoothing  
+        self.initialise_components()
 
+        previous_level = self.initial_level
+        previous_trend = self.initial_slope
+        
+        # not all seasonals need to be stored - just the seasonal length worth
+        current_seasonal_components = self.initial_seasonalcomponents.copy()
+        
+        # smoothing  
         for t in range(len(self.data_to_forecast)):
-            
-            
-            seasonal_index += 1
-            seasonal_index = seasonal_index % self.season_length
+            seasonal_index = t % self.season_length
             previous_seasonal_component = current_seasonal_components[seasonal_index]
 
             self.smoothed_data.append(previous_level + previous_trend + previous_seasonal_component)
@@ -124,41 +149,33 @@ class Holt_winters:
             previous_level = level
             previous_trend = trend
 
-            self.forecast_data.append(0)
+        # forecast loop 
+        for i in range(self.forecast_length):
+            # k is the number of steps ahead to forecast
+            k = i + 1
+            # Get the appropriate seasonal component from the last full cycle
+            seasonal_index = (len(self.data_to_forecast) + i) % self.season_length
+            seasonal_component = current_seasonal_components[seasonal_index]
 
+            # Forecast using the last level and trend from the historical data
+            forecast_value = previous_level + (k * previous_trend) + seasonal_component
+            self.forecast_data.append(forecast_value)
+thetime = time.time()
 
-        
-        ### forecast ###
-
-        for t in range(self.forecast_length):
-            
-            
-            seasonal_index += 1
-            seasonal_index = seasonal_index % self.season_length
-
-            previous_seasonal_component = current_seasonal_components[seasonal_index]
-
-            self.forecast_data.append(previous_level + previous_trend + previous_seasonal_component)
-
-            y = self.forecast_data[-1]
-
-            level = self.alpha * (y - previous_seasonal_component) + (1 - self.alpha) * (previous_level + previous_trend)
-            
-            trend = self.beta * (level - previous_level) + (1 - self.beta) * previous_trend
-                        
-            previous_level = level
-            previous_trend = trend
-
-
+temperatures = temperatures[67579:300245]
 print(f"Original data points: {len(temperatures)}")
-Test = Holt_winters(temperatures[:2*(len(temperatures)//3)], 120, 24)
+Test = Holt_winters(temperatures[:-336], 336, 24)
 Test.do_smoothing()
 print(f"Smoothed data points: {len(Test.smoothed_data)}")
-
+print(time.time()-thetime)
 
 plt.figure(figsize=(14, 7))
 plt.plot(temperatures, label='Original Data', color='blue')
-plt.plot(Test.forecast_data, label='Forecast Data', color='red', linestyle='--')
+
+# Create a correct x-axis for the forecast to plot it after the smoothed data
+forecast_index = range(len(Test.smoothed_data), len(Test.smoothed_data) + len(Test.forecast_data))
+plt.plot(forecast_index, Test.forecast_data, label='Forecast Data', color='red', linestyle='--')
+
 plt.plot(Test.smoothed_data, label='Smoothed Data (Fit)', color='orange')
 plt.title('Holt-Winters Smoothing + Forecasting')
 plt.xlabel('Time Steps')
