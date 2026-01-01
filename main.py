@@ -1,12 +1,48 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import numpy as np
+from statsmodels.tsa.api import ExponentialSmoothing
+import pandas as pd
 
 app = FastAPI()
 
-class ForecastInput(BaseModel):
+origins = [
+    "https://nea.tomdinning.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class ForecastRequest(BaseModel):
     value: str
 
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
 @app.post("/forecast")
-def get_forecast(data: ForecastInput):
-    # For testing, just echo the input value in the response
-    return {"prediction": f"Forecast for value: {data.value}"}
+def forecast(request: ForecastRequest):
+    try:
+        # Convert comma-separated string to a list of floats
+        data = [float(x.strip()) for x in request.value.split(',')]
+        
+        # Convert to pandas Series
+        ts = pd.Series(data)
+        
+        # Apply Holt-Winters Exponential Smoothing
+        model = ExponentialSmoothing(ts, seasonal_periods=4, trend='add', seasonal='add').fit()
+        
+        # Forecast the next 4 periods
+        forecast = model.forecast(4)
+        
+        return {"forecast": forecast.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
