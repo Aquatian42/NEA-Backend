@@ -21,19 +21,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World!"}
-
-class TestRequest(BaseModel):
-    value: str
-
-@app.post("/test")
-def test(request: TestRequest):
-    return {"value": request.value}
-
 class ForecastRequest(BaseModel):
-    pass
+    longitude: float
+    latitude: float
+    
+@app.post("/forecast")
+def forecast(forecast: ForecastRequest):
+    return {"val": forecast.longitude + forecast.latitude}
+
+
+### Tests ###
+# @app.get("/")
+# def read_root():
+#     return {"Hello": "World!"}
+
+# class TestRequest(BaseModel):
+#     value: str
+
+# @app.post("/test")
+# def test(request: TestRequest):
+#     return {"value": request.value}
+
+### Tests ###
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
