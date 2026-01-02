@@ -38,23 +38,23 @@ def forecast(forecast: ForecastRequest):
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
-        
+
     return openmeteo.get_past_data(ForecastRequest.latitude, ForecastRequest.longitude)
 
 
-### Tests ###
-# @app.get("/")
-# def read_root():
-#     return {"Hello": "World!"}
+## Tests ###
+@app.get("/")
+def read_root():
+    return {"Hello": "World!"}
 
-# class TestRequest(BaseModel):
-#     value: str
+class TestRequest(BaseModel):
+    value: str
 
-# @app.post("/test")
-# def test(request: TestRequest):
-#     return {"value": request.value}
+@app.post("/test")
+def test(request: TestRequest):
+    return {"value": request.value}
 
-### Tests ###
+## Tests ###
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
