@@ -6,9 +6,12 @@ import os
 
 app = FastAPI()
 
+#only allows requests from my website
 origins = [
     "https://nea.tomdinning.com"
+    "81.159.183.105"
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,16 +21,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class TestRequest(BaseModel):
-    value: str
-
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"Hello": "World!"}
+
+class TestRequest(BaseModel):
+    value: str
 
 @app.post("/test")
 def test(request: TestRequest):
     return {"value": request.value}
+
+class ForecastRequest(BaseModel):
+    pass
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
