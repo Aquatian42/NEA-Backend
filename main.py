@@ -31,7 +31,7 @@ class ForecastRequest(BaseModel):
 def forecast(request: ForecastRequest):
     try:
         past_data = open_meteo.get_past_data(request.latitude, request.longitude)
-        forecast = hw.forecast_from_data()
+        forecast = hw.forecast_from_data(past_data)
         return 
 
     except Exception as e:
