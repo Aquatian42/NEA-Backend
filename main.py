@@ -8,7 +8,7 @@ app = FastAPI()
 
 #only allows requests from my website
 origins = [
-    "https://nea.tomdinning.com"
+    "https://nea.tomdinning.com",
     "http://localhost:8000"
 ]
 
