@@ -28,6 +28,17 @@ class ForecastRequest(BaseModel):
     
 @app.post("/forecast")
 def forecast(forecast: ForecastRequest):
+    try:
+        # For now, just test returning the data
+        return {
+            "status": "success",
+            "latitude": request.latitude,
+            "longitude": request.longitude,
+            "calculation": request.latitude + request.longitude
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+        
     return openmeteo.get_past_data(ForecastRequest.latitude, ForecastRequest.longitude)
 
 
