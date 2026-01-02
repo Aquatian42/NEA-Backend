@@ -27,7 +27,7 @@ class ForecastRequest(BaseModel):
     latitude: float
     
 @app.post("/forecast")
-def forecast(forecast: ForecastRequest):
+def forecast(request: ForecastRequest):
     try:
         # For now, just test returning the data
         return {
@@ -39,7 +39,7 @@ def forecast(forecast: ForecastRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-    return openmeteo.get_past_data(forecast.latitude, forecast.longitude)
+    return openmeteo.get_past_data(request.latitude, request.longitude)
 
 
 ## Tests ###
