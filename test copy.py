@@ -152,7 +152,8 @@ class Holt_winters:
             seasonal_component = current_seasonal_components[seasonal_index]
 
             # Forecast using the last level and trend from the historical data
-            forecast_value = previous_level + (k * previous_trend) + seasonal_component
+            #### NOT USING TREND HERE ----- NEED TO FIX !!!!!!!!
+            forecast_value = previous_level + (k * 0.00001 * previous_trend) + seasonal_component
             self.forecast_data.append(forecast_value)
 thetime = time.time()
 temperatures = temperatures[67579:300245]

@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import uvicorn
 import os
 import open_meteo
+import Holt_Winters_in_use as hw
 
 app = FastAPI()
 
@@ -29,12 +30,12 @@ class ForecastRequest(BaseModel):
 @app.post("/forecast")
 def forecast(request: ForecastRequest):
     try:
-       return open_meteo.get_past_data(request.latitude, request.longitude)
+        past_data = open_meteo.get_past_data(request.latitude, request.longitude)
+        forecast = hw.forecast_from_data()
+        return 
+
     except Exception as e:
         return {"status": "error", "message": str(e)}
-
-    
-
 
 ## Tests ###
 @app.get("/")
