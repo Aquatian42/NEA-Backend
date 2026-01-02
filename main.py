@@ -39,7 +39,7 @@ def forecast(forecast: ForecastRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-    return openmeteo.get_past_data(ForecastRequest.latitude, ForecastRequest.longitude)
+    return openmeteo.get_past_data(forecast.latitude, forecast.longitude)
 
 
 ## Tests ###
