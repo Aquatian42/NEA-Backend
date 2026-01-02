@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import os
+import open_meteo
 
 app = FastAPI()
 
@@ -27,7 +28,7 @@ class ForecastRequest(BaseModel):
     
 @app.post("/forecast")
 def forecast(forecast: ForecastRequest):
-    return {"val": forecast.longitude + forecast.latitude}
+    return openmeteo.get_past_data(ForecastRequest.latitude, ForecastRequest.longitude)
 
 
 ### Tests ###
