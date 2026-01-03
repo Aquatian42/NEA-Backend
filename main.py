@@ -5,7 +5,7 @@ import uvicorn
 import os
 import open_meteo
 import Holt_Winters_in_use as hw
-from database import db, Users # Import the real DB manager and Users model
+from database import db, Users, UserData, UserLocations
 from utils import hash_password, verify_password
 from sqlalchemy import text
 
@@ -15,7 +15,7 @@ app = FastAPI()
 def startup_event():
     db.create_tables()
 
-# CORS Setup
+# only allow my website access
 origins = [
     "https://nea.tomdinning.com",
     "http://localhost:8000"
@@ -29,20 +29,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class ForecastRequest(BaseModel):
-    longitude: float
-    latitude: float
 
 class SignupRequest(BaseModel):
     username: str
     email: str
     password: str
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-# --- AUTH ROUTES ---
 
 @app.post("/signup")
 def signup(request: SignupRequest):
@@ -52,36 +43,31 @@ def signup(request: SignupRequest):
         if existing_user:
             raise HTTPException(status_code=400, detail="Username already taken")
         
-        # 2. Hash password and save
         hashed = hash_password(request.password)
-        new_user = Users(
-            username=request.username,
-            email=request.email,
-            password_hash=hashed
-        )
+        new_user = Users(username=request.username, email=request.email,password_hash=hashed)
         s.add(new_user)
         # s.commit() is handled by our context manager 'with'
-    return {"status": "success", "message": "User created"}
+    return {"success"}
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 @app.post("/login")
 def login(request: LoginRequest):
     with db.session() as s:
-        # 1. Find user
         user = s.query(Users).filter(Users.username == request.username).first()
         if not user:
             raise HTTPException(status_code=401, detail="Invalid username or password")
         
-        # 2. Verify password
         if not verify_password(request.password, user.password_hash):
             raise HTTPException(status_code=401, detail="Invalid username or password")
         
-        return {
-            "status": "success", 
-            "message": "Logged in",
-            "user": {"id": user.userID, "username": user.username}
-        }
+        return {"status": "success", "message": "Logged in", "user": {"id": user.userID, "username": user.username}}
 
-# --- OTHER ROUTES ---
+class ForecastRequest(BaseModel):
+    longitude: float
+    latitude: float
 
 @app.post("/forecast")
 def forecast(request: ForecastRequest):
@@ -92,9 +78,26 @@ def forecast(request: ForecastRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World!"}
+class addLocationRequest(BaseModel):
+    longitude: float
+    latitude: float
+    address: float
+
+@app.post("/addLocation")
+def addLocation(request: addLocationRequest):
+    try:
+        with db.session() as s:
+            #check user exists
+            existing_location = s.query(UserLocations).filter(UserLocations.longitude == request.longitude and UserLocations.latitude == request.latitude).first()
+            if existing_location:
+                return {"Already saved"}
+
+            new_location = Users(longitude=request.longitude, latitude=request.latitude,address=request.address)
+            s.add(new_location)
+        return {"success"}
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
