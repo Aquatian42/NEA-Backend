@@ -38,4 +38,4 @@ class DatabaseManager:
             db.close() # Auto-close always
 
 #creates database instance to be imported
-db = DatabaseManager()
+dbtest = DatabaseManager()
