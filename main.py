@@ -47,7 +47,7 @@ def signup(request: SignupRequest):
         new_user = Users(username=request.username, email=request.email,password_hash=hashed)
         s.add(new_user)
         # s.commit() is handled by our context manager 'with'
-    return {"success"}
+    return {"status": "success", "message": "User created"}
 
 class LoginRequest(BaseModel):
     username: str
@@ -79,7 +79,7 @@ def forecast(request: ForecastRequest):
         return {"status": "error", "message": str(e)}
 
 class addLocationRequest(BaseModel):
-    userId: str
+    userID: int
     longitude: float
     latitude: float
     address: str
@@ -88,14 +88,23 @@ class addLocationRequest(BaseModel):
 def addLocation(request: addLocationRequest):
     try:
         with db.session() as s:
-            #check user exists
-            existing_location = s.query(UserLocations).filter(UserLocations.longitude == request.longitude and UserLocations.latitude == request.latitude).first()
+            # SQLAlchemy filters use commas for 'and'
+            existing_location = s.query(UserLocations).filter(
+                UserLocations.longitude == request.longitude, 
+                UserLocations.latitude == request.latitude,
+                UserLocations.userID == request.userID
+            ).first()
             if existing_location:
-                return {"Already saved"}
+                return {"status": "info", "message": "Already saved"}
 
-            new_location = UserLocations(userId=request.userId, longitude=request.longitude, latitude=request.latitude,address=request.address)
+            new_location = UserLocations(
+                userID=request.userID, 
+                longitude=request.longitude, 
+                latitude=request.latitude,
+                address=request.address
+            )
             s.add(new_location)
-        return {"success"}
+        return {"status": "success"}
         
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -109,7 +118,8 @@ def admin_log_table(table_name: str):
         raise HTTPException(status_code=400, detail="Invalid table name")
     
     with db.session() as s:
-        result = s.execute(text(f"SELECT * FROM {table_name}"))
+        # Use double quotes for table name to handle capital letters in Postgres
+        result = s.execute(text(f'SELECT * FROM "{table_name}"'))
         # Convert rows to dictionaries for JSON response
         rows = [dict(row._mapping) for row in result]
         return rows
@@ -121,7 +131,7 @@ def admin_clear_table(table_name: str):
         raise HTTPException(status_code=400, detail="Invalid table name")
     
     with db.session() as s:
-        s.execute(text(f"DELETE FROM {table_name}"))
+        s.execute(text(f'DELETE FROM "{table_name}"'))
         return {"status": "success", "message": f"Table {table_name} cleared"}
 
 if __name__ == "__main__":
