@@ -81,7 +81,7 @@ def forecast(request: ForecastRequest):
 class addLocationRequest(BaseModel):
     longitude: float
     latitude: float
-    address: float
+    address: str
 
 @app.post("/addLocation")
 def addLocation(request: addLocationRequest):
@@ -92,7 +92,7 @@ def addLocation(request: addLocationRequest):
             if existing_location:
                 return {"Already saved"}
 
-            new_location = Users(longitude=request.longitude, latitude=request.latitude,address=request.address)
+            new_location = UserLocations(longitude=request.longitude, latitude=request.latitude,address=request.address)
             s.add(new_location)
         return {"success"}
         
