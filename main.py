@@ -5,7 +5,6 @@ import uvicorn
 import os
 import open_meteo
 import Holt_Winters_in_use as hw
-from testdatabase import dbtest, ClickLog
 from database import db, Users # Import the real DB manager and Users model
 from utils import hash_password, verify_password
 from sqlalchemy import text
@@ -43,23 +42,6 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
-
-# --- CLEAN DATABASE ROUTES ---
-
-@app.post("/log-click")
-def log_click():
-    # needs with dbtest.session() as s - code inside runs and once finished, functtion in database.py after yeild resumes
-    with dbtest.session() as s:
-        new_log = ClickLog()
-        s.add(new_log)
-    return {"status": "success"}
-
-@app.get("/click-count")
-def get_click_count():
-    # needs with dbtest.session() as s - code inside runs and once finished, functtion in database.py after yeild resumes
-    with dbtest.session() as s:
-        count = s.query(ClickLog).count()
-        return {"count": count}
 
 # --- AUTH ROUTES ---
 
