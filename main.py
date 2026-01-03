@@ -100,6 +100,30 @@ def addLocation(request: addLocationRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+# --- ADMIN ROUTES ---
+
+@app.get("/admin/log/{table_name}")
+def admin_log_table(table_name: str):
+    valid_tables = ["users", "UserData", "UserLocations"]
+    if table_name not in valid_tables:
+        raise HTTPException(status_code=400, detail="Invalid table name")
+    
+    with db.session() as s:
+        result = s.execute(text(f"SELECT * FROM {table_name}"))
+        # Convert rows to dictionaries for JSON response
+        rows = [dict(row._mapping) for row in result]
+        return rows
+
+@app.post("/admin/clear/{table_name}")
+def admin_clear_table(table_name: str):
+    valid_tables = ["users", "UserData", "UserLocations"]
+    if table_name not in valid_tables:
+        raise HTTPException(status_code=400, detail="Invalid table name")
+    
+    with db.session() as s:
+        s.execute(text(f"DELETE FROM {table_name}"))
+        return {"status": "success", "message": f"Table {table_name} cleared"}
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
