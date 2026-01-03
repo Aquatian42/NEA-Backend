@@ -49,6 +49,19 @@ class TestRequest(BaseModel):
 def test(request: TestRequest):
     return {"value": request.value}
 
+@app.get("/writefile")
+def readwritetest():
+    file_path = "testfile.txt"
+    # Append 'a' to the file
+    with open(file_path, "a") as f:
+        f.write("\na")
+    
+    # Read and return the content
+    with open(file_path, "r") as f:
+        content = f.read()
+    
+    return {"content": content}
+
 ## Tests ###
 
 if __name__ == "__main__":
