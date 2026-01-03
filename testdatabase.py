@@ -7,6 +7,7 @@ from contextlib import contextmanager
 
 Base = declarative_base()
 
+#Table definitions
 class ClickLog(Base):
     __tablename__ = "click_logs"
     id = Column(Integer, primary_key=True, index=True)
@@ -14,12 +15,8 @@ class ClickLog(Base):
 
 class DatabaseManager:
     def __init__(self):
+        #
         self.database_url = os.environ.get("DATABASE_URL")
-        if self.database_url and self.database_url.startswith("postgres://"):
-            self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
-        
-        if not self.database_url:
-            self.database_url = "sqlite:///./test.db"
 
         self.engine = create_engine(self.database_url)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
@@ -29,10 +26,10 @@ class DatabaseManager:
 
     @contextmanager
     def session(self):
-        """A helper to open and close sessions automatically."""
+        #open and close sessions 
         db = self.SessionLocal()
         try:
-            yield db  # This is where your code runs
+            yield db  # returns without finishing execution
             db.commit() # Auto-save if no errors
         except Exception:
             db.rollback() # Auto-cancel if there's an error
@@ -40,5 +37,5 @@ class DatabaseManager:
         finally:
             db.close() # Auto-close always
 
-# Create one instance for the whole app
+#creates database instance to be imported
 db = DatabaseManager()

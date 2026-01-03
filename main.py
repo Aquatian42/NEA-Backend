@@ -5,9 +5,7 @@ import uvicorn
 import os
 import open_meteo
 import Holt_Winters_in_use as hw
-
-# Only import the 'db' instance and the Model
-from database import db, ClickLog
+from testdatabase import db, ClickLog
 from sqlalchemy import text
 
 app = FastAPI()
@@ -38,7 +36,7 @@ class ForecastRequest(BaseModel):
 
 @app.post("/log-click")
 def log_click():
-    # 'with' handles opening, committing, and closing automatically!
+    # needs with db.session() as s - code inside runs and once finished, functtion in database.py after yeild resumes
     with db.session() as s:
         new_log = ClickLog()
         s.add(new_log)
@@ -46,18 +44,10 @@ def log_click():
 
 @app.get("/click-count")
 def get_click_count():
+    # needs with db.session() as s - code inside runs and once finished, functtion in database.py after yeild resumes
     with db.session() as s:
         count = s.query(ClickLog).count()
         return {"count": count}
-
-@app.get("/db-test")
-def test_db_connection():
-    try:
-        with db.session() as s:
-            s.execute(text("SELECT 1"))
-        return {"status": "success", "message": "Connection successful"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
 
 # --- OTHER ROUTES ---
 
