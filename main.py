@@ -13,7 +13,6 @@ app = FastAPI()
 
 @app.on_event("startup")
 def startup_event():
-    dbtest.create_tables()
     db.create_tables()
 
 # CORS Setup
@@ -48,7 +47,7 @@ class LoginRequest(BaseModel):
 @app.post("/signup")
 def signup(request: SignupRequest):
     with db.session() as s:
-        # 1. Check if user exists
+        #check user exists
         existing_user = s.query(Users).filter(Users.username == request.username).first()
         if existing_user:
             raise HTTPException(status_code=400, detail="Username already taken")
