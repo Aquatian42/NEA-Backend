@@ -1,33 +1,44 @@
-from sqlalchemy import create_engine, Column, Integer, DateTime
+from sqlalchemy import create_engine, text, Column, Integer, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 import datetime
+from contextlib import contextmanager
 
-# 1. SETUP THE CONNECTION URL
-# This checks if we are on Render (Postgres) or local (SQLite)
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-if not DATABASE_URL:
-    DATABASE_URL = "sqlite:///./test.db"
-
-# 2. THE ENGINE
-# This is the actual connection to the database server.
-engine = create_engine(DATABASE_URL)
-
-# 3. THE SESSION FACTORY
-# This is like a "Machine" that creates temporary workspaces (Sessions) for us.
-# Every time we want to talk to the DB, we ask this factory for a new session.
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# 4. THE BASE
-# This is the list that tracks all our tables.
 Base = declarative_base()
 
-# 5. THE MODEL (Our Table)
 class ClickLog(Base):
     __tablename__ = "click_logs"
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
+class DatabaseManager:
+    def __init__(self):
+        self.database_url = os.environ.get("DATABASE_URL")
+        if self.database_url and self.database_url.startswith("postgres://"):
+            self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
+        
+        if not self.database_url:
+            self.database_url = "sqlite:///./test.db"
+
+        self.engine = create_engine(self.database_url)
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+
+    def create_tables(self):
+        Base.metadata.create_all(bind=self.engine)
+
+    @contextmanager
+    def session(self):
+        """A helper to open and close sessions automatically."""
+        db = self.SessionLocal()
+        try:
+            yield db  # This is where your code runs
+            db.commit() # Auto-save if no errors
+        except Exception:
+            db.rollback() # Auto-cancel if there's an error
+            raise
+        finally:
+            db.close() # Auto-close always
+
+# Create one instance for the whole app
+db = DatabaseManager()

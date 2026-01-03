@@ -6,18 +6,17 @@ import os
 import open_meteo
 import Holt_Winters_in_use as hw
 
-# Import the simple variables from database.py
-from database import engine, SessionLocal, ClickLog, Base
+# Only import the 'db' instance and the Model
+from database import db, ClickLog
 from sqlalchemy import text
 
 app = FastAPI()
 
-# Create tables on startup manually using the engine and Base
 @app.on_event("startup")
 def startup_event():
-    Base.metadata.create_all(bind=engine)
+    db.create_tables()
 
-#only allows requests from my website                 
+# CORS Setup
 origins = [
     "https://nea.tomdinning.com",
     "http://localhost:8000"
@@ -35,6 +34,33 @@ class ForecastRequest(BaseModel):
     longitude: float
     latitude: float
 
+# --- CLEAN DATABASE ROUTES ---
+
+@app.post("/log-click")
+def log_click():
+    # 'with' handles opening, committing, and closing automatically!
+    with db.session() as s:
+        new_log = ClickLog()
+        s.add(new_log)
+    return {"status": "success"}
+
+@app.get("/click-count")
+def get_click_count():
+    with db.session() as s:
+        count = s.query(ClickLog).count()
+        return {"count": count}
+
+@app.get("/db-test")
+def test_db_connection():
+    try:
+        with db.session() as s:
+            s.execute(text("SELECT 1"))
+        return {"status": "success", "message": "Connection successful"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# --- OTHER ROUTES ---
+
 @app.post("/forecast")
 def forecast(request: ForecastRequest):
     try:
@@ -44,63 +70,9 @@ def forecast(request: ForecastRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-## Tests ###  
-#------------ database --
-@app.post("/log-click")
-def log_click():
-    # 1. Manually ask the factory for a new session (workspace)
-    db = SessionLocal()
-    try:
-        # 2. Use the workspace to add a record
-        new_log = ClickLog()
-        db.add(new_log)
-        # 3. Manually hit "Save"
-        db.commit()
-        return {"status": "success"}
-    except Exception as e:
-        # If something goes wrong, cancel the save
-        db.rollback()
-        return {"status": "error", "message": str(e)}
-    finally:
-        # 4. ALWAYS close the workspace manually
-        db.close()
-
-@app.get("/click-count")
-def get_click_count():
-    # 1. Open workspace
-    db = SessionLocal()
-    try:
-        # 2. Do the query
-        count = db.query(ClickLog).count()
-        return {"count": count}
-    finally:
-        # 3. Close workspace
-        db.close()
-
-@app.get("/db-test")
-def test_db_connection():
-    db = SessionLocal()
-    try:
-        db.execute(text("SELECT 1"))
-        return {"status": "success", "message": "Database connection successful!"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-    finally:
-        db.close()
-#------------ database --
-
 @app.get("/")
 def read_root():
     return {"Hello": "World!"}
-
-class TestRequest(BaseModel):
-    value: str
-
-@app.post("/test")
-def test(request: TestRequest):
-    return {"value": request.value}
-
-## Tests ###  
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
