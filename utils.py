@@ -1,5 +1,6 @@
 import math
 import random
+import bcrypt
 
 def sum(list0):
     total = 0
@@ -52,3 +53,15 @@ def chunks_of_list(list5,number,length):
         end_index = start_index + length
         out_lists.append(list5[start_index:end_index])
     return out_lists
+
+
+
+### passwords ###
+def hash_password(pwd):
+    password = pwd.encode("utf-8")
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password, salt)
+    return hashed
+
+def verify_password(plain_password: str, hashed_password: str):                                        
+    return bcrypt.checkpw(plain_password.encode('utf-8'),hashed_password)  

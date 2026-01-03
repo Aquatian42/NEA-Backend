@@ -5,13 +5,16 @@ import uvicorn
 import os
 import open_meteo
 import Holt_Winters_in_use as hw
-from testdatabase import db, ClickLog
+from testdatabase import dbtest, ClickLog
+from database import db, Users # Import the real DB manager and Users model
+from utils import hash_password, verify_password
 from sqlalchemy import text
 
 app = FastAPI()
 
 @app.on_event("startup")
 def startup_event():
+    dbtest.create_tables()
     db.create_tables()
 
 # CORS Setup
@@ -32,22 +35,70 @@ class ForecastRequest(BaseModel):
     longitude: float
     latitude: float
 
+class SignupRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 # --- CLEAN DATABASE ROUTES ---
 
 @app.post("/log-click")
 def log_click():
-    # needs with db.session() as s - code inside runs and once finished, functtion in database.py after yeild resumes
-    with db.session() as s:
+    # needs with dbtest.session() as s - code inside runs and once finished, functtion in database.py after yeild resumes
+    with dbtest.session() as s:
         new_log = ClickLog()
         s.add(new_log)
     return {"status": "success"}
 
 @app.get("/click-count")
 def get_click_count():
-    # needs with db.session() as s - code inside runs and once finished, functtion in database.py after yeild resumes
-    with db.session() as s:
+    # needs with dbtest.session() as s - code inside runs and once finished, functtion in database.py after yeild resumes
+    with dbtest.session() as s:
         count = s.query(ClickLog).count()
         return {"count": count}
+
+# --- AUTH ROUTES ---
+
+@app.post("/signup")
+def signup(request: SignupRequest):
+    with db.session() as s:
+        # 1. Check if user exists
+        existing_user = s.query(Users).filter(Users.username == request.username).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        
+        # 2. Hash password and save
+        hashed = hash_password(request.password)
+        new_user = Users(
+            username=request.username,
+            email=request.email,
+            password_hash=hashed
+        )
+        s.add(new_user)
+        # s.commit() is handled by our context manager 'with'
+    return {"status": "success", "message": "User created"}
+
+@app.post("/login")
+def login(request: LoginRequest):
+    with db.session() as s:
+        # 1. Find user
+        user = s.query(Users).filter(Users.username == request.username).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        
+        # 2. Verify password
+        if not verify_password(request.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        
+        return {
+            "status": "success", 
+            "message": "Logged in",
+            "user": {"id": user.userID, "username": user.username}
+        }
 
 # --- OTHER ROUTES ---
 
