@@ -5,8 +5,16 @@ import uvicorn
 import os
 import open_meteo
 import Holt_Winters_in_use as hw
+from database import db_manager, ClickLog
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
 app = FastAPI()
+
+# Create tables on startup
+@app.on_event("startup")
+def startup_event():
+    db_manager.create_all()
 
 #only allows requests from my website
 origins = [
@@ -37,6 +45,7 @@ def forecast(request: ForecastRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+
 ## Tests ###
 @app.get("/")
 def read_root():
@@ -47,22 +56,71 @@ class TestRequest(BaseModel):
 
 @app.post("/test")
 def test(request: TestRequest):
+    
     return {"value": request.value}
 
-@app.get("/writefile")
-def readwritetest():
-    file_path = "testfile.txt"
-    # Append 'a' to the file
-    with open(file_path, "a") as f:
-        f.write("\na")
-    
-    # Read and return the content
-    with open(file_path, "r") as f:
-        content = f.read()
-    
-    return {"content": content}
+
+@app.get("/db-test")
+
+
+def test_db_connection():
+
+
+    if db_manager.test_connection():
+
+
+        return {"status": "success", "message": "Database connection successful!"}
+
+
+    else:
+
+
+        return {"status": "error", "message": "Database connection failed"}
+
+
+
+
+
+@app.post("/log-click")
+
+
+def log_click(db: Session = Depends(db_manager.get_db)):
+
+
+    new_log = ClickLog()
+
+
+    db.add(new_log)
+
+
+    db.commit()
+
+
+    return {"status": "success"}
+
+
+
+
+
+@app.get("/click-count")
+
+
+def get_click_count(db: Session = Depends(db_manager.get_db)):
+
+
+    count = db.query(ClickLog).count()
+
+
+    return {"count": count}
+
+
+
+
 
 ## Tests ###
+
+
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
