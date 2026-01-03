@@ -15,8 +15,12 @@ class ClickLog(Base):
 
 class DatabaseManager:
     def __init__(self):
-        #
         self.database_url = os.environ.get("DATABASE_URL")
+        if self.database_url and self.database_url.startswith("postgres://"):
+            self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
+        
+        if not self.database_url:
+            self.database_url = "sqlite:///./test.db"
 
         self.engine = create_engine(self.database_url)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
