@@ -79,6 +79,7 @@ def forecast(request: ForecastRequest):
         return {"status": "error", "message": str(e)}
 
 class addLocationRequest(BaseModel):
+    userId: str
     longitude: float
     latitude: float
     address: str
@@ -92,7 +93,7 @@ def addLocation(request: addLocationRequest):
             if existing_location:
                 return {"Already saved"}
 
-            new_location = UserLocations(longitude=request.longitude, latitude=request.latitude,address=request.address)
+            new_location = UserLocations(userId=request.userId, longitude=request.longitude, latitude=request.latitude,address=request.address)
             s.add(new_location)
         return {"success"}
         
