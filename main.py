@@ -78,6 +78,21 @@ def forecast(request: ForecastRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/recent-locations/{user_id}")
+def get_recent_locations(user_id: int):
+    with db.session() as s:
+        # Get last 5 locations for this user, ordered by locationID descending
+        locations = s.query(UserLocations).filter(UserLocations.userID == user_id).order_by(UserLocations.locationID.desc()).limit(5).all()
+        
+        # Convert to list of dicts
+        return [
+            {
+                "latitude": loc.latitude,
+                "longitude": loc.longitude,
+                "address": loc.address
+            } for loc in locations
+        ]
+
 class addLocationRequest(BaseModel):
     userId: str
     longitude: float
