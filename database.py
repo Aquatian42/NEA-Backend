@@ -10,14 +10,14 @@ Base = declarative_base()
 #Table definitions
 class Users(Base):
     __tablename__ = "users"
-    userId = Column(Integer, primary_key=True, nullable=False, index=True)
+    userID = Column(Integer, primary_key=True, nullable=False, index=True)
     username = Column(String(50), nullable=False, unique=True)
     email = Column(String(256), nullable=False)
     password_hash = Column(String, nullable=False)
 
 class UserData(Base):
     __tablename__ = "userdata"
-    userId = Column(Integer, primary_key=True, nullable=False, index=True)
+    userID = Column(Integer, primary_key=True, nullable=False, index=True)
     temperature = Column(String(10), nullable=False, default="degC")
     speed = Column(String(10), nullable=False, default="ms")
     distance = Column(String(10), nullable=False, default="km")
@@ -25,8 +25,8 @@ class UserData(Base):
 
 class UserLocations(Base):
     __tablename__ = "userlocations"
-    locationId = Column(Integer, primary_key=True, nullable=False, index=True)
-    userId = Column(Integer, ForeignKey("users.userID"), nullable=False)
+    locationID = Column(Integer, primary_key=True, nullable=False, index=True)
+    userID = Column(Integer, ForeignKey("users.userID"), nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     address = Column(String, nullable=True)

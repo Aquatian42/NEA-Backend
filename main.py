@@ -88,15 +88,23 @@ class addLocationRequest(BaseModel):
 def addLocation(request: addLocationRequest):
     try:
         with db.session() as s:
-            #check user exists 
-            #comas for and
-            existing_location = s.query(UserLocations).filter(UserLocations.longitude == request.longitude, UserLocations.latitude == request.latitude).first()
+            # SQLAlchemy filters use commas for 'and'
+            existing_location = s.query(UserLocations).filter(
+                UserLocations.longitude == request.longitude, 
+                UserLocations.latitude == request.latitude
+            ).first()
+            
             if existing_location:
-                return {"Already saved"}
+                return {"status": "info", "message": "Already saved"}
 
-            new_location = UserLocations(userId=request.userId, longitude=request.longitude, latitude=request.latitude,address=request.address)
+            new_location = UserLocations(
+                userID=int(request.userId), 
+                longitude=request.longitude, 
+                latitude=request.latitude,
+                address=request.address
+            )
             s.add(new_location)
-        return {"success"}
+        return {"status": "success"}
         
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -105,16 +113,25 @@ def addLocation(request: addLocationRequest):
 
 @app.get("/admin/log/{table_name}")
 def admin_log_table(table_name: str):
+    valid_tables = ["users", "userdata", "userlocations"]
+    if table_name.lower() not in valid_tables:
+        raise HTTPException(status_code=400, detail="Invalid table name")
+    
     with db.session() as s:
-        result = s.execute(text(f"SELECT * FROM {table_name}"))
+        # Use double quotes for table name to handle potential capital letters or reserved words
+        result = s.execute(text(f'SELECT * FROM "{table_name}"'))
         # Convert rows to dictionaries for JSON response
         rows = [dict(row._mapping) for row in result]
         return rows
 
 @app.post("/admin/clear/{table_name}")
 def admin_clear_table(table_name: str):
+    valid_tables = ["users", "userdata", "userlocations"]
+    if table_name.lower() not in valid_tables:
+        raise HTTPException(status_code=400, detail="Invalid table name")
+    
     with db.session() as s:
-        s.execute(text(f"DELETE FROM {table_name}"))
+        s.execute(text(f'DELETE FROM "{table_name}"'))
         return {"status": "success", "message": f"Table {table_name} cleared"}
 
 if __name__ == "__main__":
