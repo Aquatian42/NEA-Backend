@@ -38,10 +38,6 @@ class DatabaseManager:
         # Fix for SQLAlchemy 2.0+ which requires 'postgresql' instead of 'postgres'
         if self.database_url and self.database_url.startswith("postgres://"):
             self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
-        
-        # Fallback for local testing
-        if not self.database_url:
-            self.database_url = "sqlite:///./test.db"
 
         self.engine = create_engine(self.database_url)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)

@@ -47,7 +47,7 @@ def signup(request: SignupRequest):
         new_user = Users(username=request.username, email=request.email,password_hash=hashed)
         s.add(new_user)
         # s.commit() is handled by our context manager 'with'
-    return {"success"}
+    return {"status": "success", "message": "User created"}
 
 class LoginRequest(BaseModel):
     username: str
@@ -88,8 +88,9 @@ class addLocationRequest(BaseModel):
 def addLocation(request: addLocationRequest):
     try:
         with db.session() as s:
-            #check user exists
-            existing_location = s.query(UserLocations).filter(UserLocations.longitude == request.longitude and UserLocations.latitude == request.latitude).first()
+            #check user exists 
+            #comas for and
+            existing_location = s.query(UserLocations).filter(UserLocations.longitude == request.longitude, UserLocations.latitude == request.latitude).first()
             if existing_location:
                 return {"Already saved"}
 
@@ -104,10 +105,6 @@ def addLocation(request: addLocationRequest):
 
 @app.get("/admin/log/{table_name}")
 def admin_log_table(table_name: str):
-    valid_tables = ["users", "userdata", "userlocations"]
-    if table_name not in valid_tables:
-        raise HTTPException(status_code=400, detail="Invalid table name")
-    
     with db.session() as s:
         result = s.execute(text(f"SELECT * FROM {table_name}"))
         # Convert rows to dictionaries for JSON response
@@ -116,10 +113,6 @@ def admin_log_table(table_name: str):
 
 @app.post("/admin/clear/{table_name}")
 def admin_clear_table(table_name: str):
-    valid_tables = ["users", "userdata", "userlocations"]
-    if table_name not in valid_tables:
-        raise HTTPException(status_code=400, detail="Invalid table name")
-    
     with db.session() as s:
         s.execute(text(f"DELETE FROM {table_name}"))
         return {"status": "success", "message": f"Table {table_name} cleared"}
