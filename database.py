@@ -5,9 +5,10 @@ import os
 import datetime
 from contextlib import contextmanager
 
+#used to define tables
 Base = declarative_base()
 
-#Table definitions
+#table definitions, objescts of these become records
 class Users(Base):
     __tablename__ = "users"
     userID = Column(Integer, primary_key=True, nullable=False, index=True)
@@ -17,7 +18,8 @@ class Users(Base):
 
 class UserData(Base):
     __tablename__ = "userdata"
-    userID = Column(Integer, primary_key=True, nullable=False, index=True)
+    #will delete these records automatically when users records are deleted.
+    userID = Column(Integer, ForeignKey("users.userID", ondelete="CASCADE"), primary_key=True, nullable=False, index=True)
     temperature = Column(String(10), nullable=False, default="degC")
     speed = Column(String(10), nullable=False, default="ms")
     distance = Column(String(10), nullable=False, default="km")
@@ -26,7 +28,8 @@ class UserData(Base):
 class UserLocations(Base):
     __tablename__ = "userlocations"
     locationID = Column(Integer, primary_key=True, nullable=False, index=True)
-    userID = Column(Integer, ForeignKey("users.userID"), nullable=False)
+    #will delete these records automatically when users records are deleted.
+    userID = Column(Integer, ForeignKey("users.userID", ondelete="CASCADE"), nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     address = Column(String, nullable=True)
@@ -35,10 +38,11 @@ class UserLocations(Base):
 class DatabaseManager:
     def __init__(self):
         self.database_url = os.environ.get("DATABASE_URL")
-        
+
         self.engine = create_engine(self.database_url)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
+    #create tables if they have been deleted
     def create_tables(self):
         Base.metadata.create_all(bind=self.engine)
 

@@ -103,15 +103,6 @@ class addLocationRequest(BaseModel):
 def addLocation(request: addLocationRequest):
     try:
         with db.session() as s:
-            # SQLAlchemy filters use commas for 'and'
-            existing_location = s.query(UserLocations).filter(
-                UserLocations.longitude == request.longitude, 
-                UserLocations.latitude == request.latitude
-            ).first()
-            
-            if existing_location:
-                return {"status": "info", "message": "Already saved"}
-
             new_location = UserLocations(
                 userID=int(request.userId), 
                 longitude=request.longitude, 
@@ -125,7 +116,7 @@ def addLocation(request: addLocationRequest):
         return {"status": "error", "message": str(e)}
 
 # --- Testing ---
-
+# allows fastapi to serve data from the specified paths
 @app.get("/admin/log/{table_name}")
 def admin_log_table(table_name: str):
     valid_tables = ["users", "userdata", "userlocations"]
@@ -133,7 +124,7 @@ def admin_log_table(table_name: str):
         raise HTTPException(status_code=400, detail="Invalid table name")
     
     with db.session() as s:
-        # Use double quotes for table name to handle potential capital letters or reserved words
+        
         result = s.execute(text(f'SELECT * FROM "{table_name}"'))
         # Convert rows to dictionaries for JSON response
         rows = [dict(row._mapping) for row in result]
