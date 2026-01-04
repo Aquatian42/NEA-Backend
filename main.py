@@ -8,8 +8,11 @@ import Holt_Winters_in_use as hw
 from database import db, Users, UserData, UserLocations
 from utils import hash_password, verify_password
 from sqlalchemy import text
+import requests
 
 app = FastAPI()
+
+
 
 @app.on_event("startup")
 def startup_event():
@@ -29,8 +32,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#load api key from render environment
+PLACES_API_KEY = os.environ.get("PLACES_API_KEY")
 
-class SignupRequest(BaseModel):
+@app.post("/api/autocomplete")
+def proxy_autocomplete(request: dict):
+    url = "https://places.googleapis.com/v1/places:autocomplete"
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": PLACES_API_KEY
+    }
+    response = requests.post(url, json=request, headers=headers)
+    return response.json()
+
+@app.get("/api/geocode/{place_id}")
+def proxy_geocode(place_id: str):
+    url = "https://geocode.googleapis.com/v4beta/geocode/places/" + {place_id} + "?key={PLACES_API_KEY}"
+    response = requests.get(url)
+    return response.json()
+
+
     username: str
     email: str
     password: str
@@ -115,7 +136,7 @@ def addLocation(request: addLocationRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# --- Testing ---
+# --- testing ---
 # allows fastapi to serve data from the specified paths
 @app.get("/admin/log/{table_name}")
 def admin_log_table(table_name: str):
