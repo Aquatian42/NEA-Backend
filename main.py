@@ -56,6 +56,9 @@ def proxy_geocode(place_id: str):
     email: str
     password: str
 
+class SignupRequest(BaseModel):
+    username: str
+
 @app.post("/signup")
 def signup(request: SignupRequest):
     with db.session() as s:
