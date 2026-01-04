@@ -16,7 +16,7 @@ class Users(Base):
     password_hash = Column(String, nullable=False)
 
 class UserData(Base):
-    __tablename__ = "UserData"
+    __tablename__ = "userdata"
     userID = Column(Integer, primary_key=True, nullable=False, index=True)
     temperature = Column(String(10), nullable=False, default="degC")
     speed = Column(String(10), nullable=False, default="ms")
@@ -24,7 +24,7 @@ class UserData(Base):
     pressure = Column(String(10), nullable=False, default="pa")
 
 class UserLocations(Base):
-    __tablename__ = "UserLocations"
+    __tablename__ = "userlocations"
     locationID = Column(Integer, primary_key=True, nullable=False, index=True)
     userID = Column(Integer, ForeignKey("users.userID"), nullable=False)
     latitude = Column(Float, nullable=False)
