@@ -1,7 +1,7 @@
 from utils import *
 
 class Holt_winters:
-    def __init__(self, past_data=list, forecast_length=168, season_length=24):
+    def __init__(self, past_data=list, forecast_length=240, season_length=24):
         self.past_data = past_data
         self.forecast_length = forecast_length
         self.season_length = season_length

@@ -104,17 +104,24 @@ def forecast(request: ForecastRequest):
 @app.get("/recent-locations/{user_id}")
 def get_recent_locations(user_id: int):
     with db.session() as s:
-        # Get last 5 locations for this user, ordered by locationID descending
-        locations = s.query(UserLocations).filter(UserLocations.userID == user_id).order_by(UserLocations.locationID.desc()).limit(5).all()
+        # Get recent locations for this user
+        #fetch 20 locations to get 5 unique ones
+        locations = s.query(UserLocations).filter(UserLocations.userID == user_id).order_by(UserLocations.locationID.desc()).limit(20).all()
         
-        # Convert to list of dicts
-        return [
-            {
-                "latitude": loc.latitude,
-                "longitude": loc.longitude,
-                "address": loc.address
-            } for loc in locations
-        ]
+        seen_addresses = []
+        unique_locations = []
+        
+        for loc in locations:
+            while len(unique_locations) < 5: 
+                if loc.address not in seen_addresses:
+                    seen_addresses.add(loc.address)
+                    unique_locations.append({
+                        "latitude": loc.latitude,
+                        "longitude": loc.longitude,
+                        "address": loc.address
+                    })
+                
+        return unique_locations
 
 class addLocationRequest(BaseModel):
     userId: str
