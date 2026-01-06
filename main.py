@@ -129,7 +129,7 @@ class addLocationRequest(BaseModel):
     latitude: float
     address: str
 
-@app.post("/addLocation")
+@app.post("/addLocation/{user_id}")
 def addLocation(request: addLocationRequest):
     try:
         with db.session() as s:
