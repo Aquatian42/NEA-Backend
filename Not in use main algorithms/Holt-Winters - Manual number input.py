@@ -27,13 +27,15 @@ for line in csvList:
     wind_gusts_10m.append(float(line[11]))
     cloud_cover.append(float(line[12]))
     pressure.append(float(line[13]))
-temperatures = temperatures[:]
+temperatures = temperatures[:365*24*10]
 
 class Holt_winters:
     def __init__(self, past_data=list, forecast_length=168, season_length=24):
         self.past_data = past_data
+        print(len(self.past_data)%24)
         self.forecast_length = forecast_length
         self.season_length = season_length
+        self.damping = 0.99
         
         self.smoothed_data = []
         self.seasonal_components = []
@@ -63,7 +65,7 @@ class Holt_winters:
         self.initial_slope = initial_slope
         self.initial_seasonalcomponents = initial_seasonalcomponents.copy()
 
-    def smooth_past_data(self):
+    def smooth_past_data(self,damping):
         self.initialise_components()
 
         previous_level = self.initial_level
@@ -74,19 +76,17 @@ class Holt_winters:
         
         # smoothing  
         for t in range(len(self.data_to_forecast)):
+            y = self.data_to_forecast[t]
             seasonal_index = t % self.season_length
             previous_seasonal_component = current_seasonal_components[seasonal_index]
-
-            ##### NOT USING TREND!!!!!!!
-            self.smoothed_data.append(previous_level + previous_trend * 0 + previous_seasonal_component)
-
-            y = self.data_to_forecast[t]
             
             level = self.alpha * (y - previous_seasonal_component) + (1 - self.alpha) * (previous_level + previous_trend)
             
             trend = self.beta * (level - previous_level) + (1 - self.beta) * previous_trend
             
             current_seasonal_components[seasonal_index] = self.gamma * (y - level) + (1 - self.gamma) * previous_seasonal_component
+            
+            self.smoothed_data.append(previous_level + previous_trend + previous_seasonal_component)
             
             previous_level = level
             previous_trend = trend
@@ -100,20 +100,23 @@ class Holt_winters:
             seasonal_component = current_seasonal_components[seasonal_index]
 
             # Forecast using the last level and trend from the historical data
-            forecast_value = previous_level + (k * previous_trend * 0) + seasonal_component
+            forecast_value = previous_level + (k * previous_trend) + seasonal_component
             self.forecast_data.append(forecast_value)
 
-    def do_smoothing(self):
+            if damping:
+                previous_trend *= self.damping
+
+    def do_smoothing(self,damping):
         #must be between 0 and 1 for all
         self.alpha = 0.2
-        self.beta = 0.05
+        self.beta = 0.1
         self.gamma = 0.5
         self.data_to_forecast = self.past_data[:-self.forecast_length]
-        self.smooth_past_data()
+        self.smooth_past_data(damping)
 
 print(f"Original data points: {len(temperatures)}")
 Test = Holt_winters(temperatures, 120, 24)
-Test.do_smoothing()
+Test.do_smoothing(True)
 print(f"Smoothed data points: {len(Test.smoothed_data)}")
 
 

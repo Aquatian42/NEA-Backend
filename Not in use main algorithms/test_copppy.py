@@ -27,8 +27,7 @@ for line in csvList:
     wind_gusts_10m.append(float(line[11]))
     cloud_cover.append(float(line[12]))
     pressure.append(float(line[13]))
-temperatures = temperatures[0:]
-
+temperatures = temperatures[24*10*365:24*25*365+100]
 
 
 class Holt_winters:
@@ -41,53 +40,7 @@ class Holt_winters:
         self.seasonal_components = []
         self.forecast_data = []
 
-    def do_smoothing(self):
-        #must be between 0 and 1 for all
-             
-        best_mse = float('inf')
-        best_params = {}
-        
-        datalist = chunks_of_list(self.past_data,50,1680)
-
-        # test out combinations of coefficients 
-
-        y = 0
-        x = 0.5
-        z = 0.1
-        while y < 1:
-            y += 0.1
-            self.beta = z
-            self.alpha,self.beta,self.gamma = x,y,z
-            mserrors = []
-            for data in datalist:
-                self.data_to_forecast = data[:-self.forecast_length]
-                self.correct_data = data[-self.forecast_length:]
-                # reset for each set of parameters
-                self.smoothed_data = []
-                self.forecast_data = []
-
-                self.smooth_past_data()
-                current_mse = mse(self.forecast_data,self.correct_data)
-                mserrors.append(current_mse)
-
-            avg_mserror = mean(mserrors)
-            current_mse = avg_mserror
-            if current_mse < best_mse:
-
-                best_mse = current_mse
-                best_params = {'alpha': x, 'beta': y, 'gamma': z}
-        
-        print(f"Best mse: {best_mse}")
-        print(f"Best Parameters: {best_params}")
-        # Rerun with best parameters for plotting
-        if best_params:
-            self.alpha = best_params['alpha']
-            self.beta = best_params['beta']
-            self.gamma = best_params['gamma']
-            self.data_to_forecast = self.past_data[:]
-            self.smoothed_data = []
-            self.forecast_data = []
-            self.smooth_past_data()
+        self.damping = 0.98
     
     def initialise_components(self):
         #https://robjhyndman.com/hyndsight/hw-initialization/
@@ -123,22 +76,10 @@ class Holt_winters:
         current_seasonal_components = self.initial_seasonalcomponents.copy()
         
         # smoothing  
-        self.initialise_components()
-
-        previous_level = self.initial_level
-        previous_trend = self.initial_slope
-        
-        # not all seasonals need to be stored - just the seasonal length worth
-        current_seasonal_components = self.initial_seasonalcomponents.copy()
-        
-        # smoothing  
         for t in range(len(self.data_to_forecast)):
+            y = self.data_to_forecast[t]
             seasonal_index = t % self.season_length
             previous_seasonal_component = current_seasonal_components[seasonal_index]
-
-            self.smoothed_data.append(previous_level + previous_trend + previous_seasonal_component)
-
-            y = self.data_to_forecast[t]
             
             level = self.alpha * (y - previous_seasonal_component) + (1 - self.alpha) * (previous_level + previous_trend)
             
@@ -146,29 +87,54 @@ class Holt_winters:
             
             current_seasonal_components[seasonal_index] = self.gamma * (y - level) + (1 - self.gamma) * previous_seasonal_component
             
+            self.smoothed_data.append(previous_level + previous_trend + previous_seasonal_component)
+            
             previous_level = level
             previous_trend = trend
 
+
+
+        last_point = self.smoothed_data[-1] 
+        seasonal_index = (len(self.data_to_forecast)) % self.season_length 
+        seasonal_component = current_seasonal_components[seasonal_index]
+        # Forecast using the last level and trend from the historical data
+        forecast_value = previous_level + (previous_trend) + seasonal_component
+        shift = last_point - forecast_value
+        # print(last_point,forecast_value,shift)
+
         # forecast loop 
         for i in range(self.forecast_length):
-            # k is the number of steps ahead to forecast
-            k = i + 1
-            # Get the appropriate seasonal component from the last full cycle
-            seasonal_index = (len(self.data_to_forecast) + i) % self.season_length
+            # Get the appropriate seasonal component from the last full cycle 
+            seasonal_index = (len(self.data_to_forecast) + i) % self.season_length 
             seasonal_component = current_seasonal_components[seasonal_index]
 
             # Forecast using the last level and trend from the historical data
-            forecast_value = previous_level + (k * previous_trend) + seasonal_component
+            forecast_value = previous_level + (i * previous_trend) + seasonal_component + shift ## not sure why shift needed?
             self.forecast_data.append(forecast_value)
-thetime = time.time()
 
-temperatures = temperatures[67579:300245]
+            #Damping
+            previous_trend *= self.damping
+
+
+    def do_smoothing(self):
+        #must be between 0 and 1 for all
+        self.alpha = 0.2
+        self.beta = 0.05
+        self.gamma = 0.5
+        self.data_to_forecast = self.past_data[:]
+        self.smooth_past_data()
+
+
+
+thetime = time.time()
 print(f"Original data points: {len(temperatures)}")
-Test = Holt_winters(temperatures[:-336], 336, 24)
+Test = Holt_winters(temperatures[:-336], 240)
 Test.do_smoothing()
 print(f"Smoothed data points: {len(Test.smoothed_data)}")
 print(time.time()-thetime)
-
+print(Test.forecast_data[:10])
+print(Test.smoothed_data[-10:])
+temperatures = temperatures[(len(temperatures)%24):]
 plt.figure(figsize=(14, 7))
 plt.plot(temperatures, label='Original Data', color='blue')
 
@@ -177,7 +143,7 @@ forecast_index = range(len(Test.smoothed_data), len(Test.smoothed_data) + len(Te
 plt.plot(forecast_index, Test.forecast_data, label='Forecast Data', color='red', linestyle='--')
 
 plt.plot(Test.smoothed_data, label='Smoothed Data (Fit)', color='orange')
-plt.title('Holt-Winters Smoothing + Forecasting')
+plt.title('Seasonal Exponential Smoothing + Forecasting')
 plt.xlabel('Time Steps')
 plt.ylabel('Temperature')
 plt.legend()

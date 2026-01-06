@@ -41,9 +41,9 @@ def mse(test,correct):
         return("error")
     squares = []
     for i in range(len(test)):
-        squares.append(test[i]**2)
-    mse = mean(squares)
-    return mse
+        squares.append((test[i] - correct[i])**2)
+    mse_value = mean(squares)
+    return mse_value
 
 def chunks_of_list(list5,number,length):
     out_lists = []

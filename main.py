@@ -35,7 +35,7 @@ app.add_middleware(
 #load api key from render environment
 PLACES_API_KEY = os.environ.get("PLACES_API_KEY")
 
-@app.post("/api/autocomplete")
+@app.post("/autocomplete")
 def proxy_autocomplete(request: dict):
     url = "https://places.googleapis.com/v1/places:autocomplete"
     headers = {
@@ -45,19 +45,18 @@ def proxy_autocomplete(request: dict):
     response = requests.post(url, json=request, headers=headers)
     return response.json()
 
-@app.get("/api/geocode/{place_id}")
+@app.get("/geocode/{place_id}")
 def proxy_geocode(place_id: str):
     url = "https://geocode.googleapis.com/v4beta/geocode/places/" + {place_id} + "?key={PLACES_API_KEY}"
     response = requests.get(url)
     return response.json()
 
 
+class SignupRequest(BaseModel):
     username: str
     email: str
     password: str
 
-class SignupRequest(BaseModel):
-    username: str
 
 @app.post("/signup")
 def signup(request: SignupRequest):

@@ -9,6 +9,8 @@ class Holt_winters:
         self.smoothed_data = []
         self.seasonal_components = []
         self.forecast_data = []
+
+        self.damping = 0.98
     
     def initialise_components(self):
         #https://robjhyndman.com/hyndsight/hw-initialization/
@@ -45,13 +47,9 @@ class Holt_winters:
         
         # smoothing  
         for t in range(len(self.data_to_forecast)):
+            y = self.data_to_forecast[t]
             seasonal_index = t % self.season_length
             previous_seasonal_component = current_seasonal_components[seasonal_index]
-
-            ##### NOT USING TREND!!!!!!!
-            self.smoothed_data.append(previous_level + previous_trend * 0 + previous_seasonal_component)
-
-            y = self.data_to_forecast[t]
             
             level = self.alpha * (y - previous_seasonal_component) + (1 - self.alpha) * (previous_level + previous_trend)
             
@@ -59,27 +57,40 @@ class Holt_winters:
             
             current_seasonal_components[seasonal_index] = self.gamma * (y - level) + (1 - self.gamma) * previous_seasonal_component
             
+            self.smoothed_data.append(previous_level + previous_trend + previous_seasonal_component)
+            
             previous_level = level
             previous_trend = trend
 
+
+        #calculate vertical shift  
+        last_point = self.smoothed_data[-1] 
+        seasonal_index = (len(self.data_to_forecast)) % self.season_length 
+        seasonal_component = current_seasonal_components[seasonal_index]
+        # Forecast using the last level and trend from the historical data
+        forecast_value = previous_level + (previous_trend) + seasonal_component
+        shift = last_point - forecast_value
+
         # forecast loop 
         for i in range(self.forecast_length):
-            # k is the number of steps ahead to forecast
-            k = i + 1
-            # Get the appropriate seasonal component from the last full cycle
-            seasonal_index = (len(self.data_to_forecast) + i) % self.season_length
+            # Get the appropriate seasonal component from the last full cycle 
+            seasonal_index = (len(self.data_to_forecast) + i) % self.season_length 
             seasonal_component = current_seasonal_components[seasonal_index]
 
-            # Forecast using the last level and trend from the historical data
-            forecast_value = previous_level + (k * previous_trend * 0) + seasonal_component
+            # forecast using the last level and trend from the historical data
+            forecast_value = previous_level + (i * previous_trend) + seasonal_component + shift ## not sure why shift needed?
             self.forecast_data.append(forecast_value)
+
+            #Damping
+            previous_trend *= self.damping
+
 
     def do_smoothing(self):
         #must be between 0 and 1 for all
         self.alpha = 0.2
         self.beta = 0.05
         self.gamma = 0.5
-        self.data_to_forecast = self.past_data[:self.forecast_length]
+        self.data_to_forecast = self.past_data[:]
         self.smooth_past_data()
 
 def forecast_from_data(past_data):
