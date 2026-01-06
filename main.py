@@ -47,7 +47,7 @@ def proxy_autocomplete(request: dict):
 
 @app.get("/geocode/{place_id}")
 def proxy_geocode(place_id: str):
-    url = "https://geocode.googleapis.com/v4beta/geocode/places/" + {place_id} + "?key={PLACES_API_KEY}"
+    url = f"https://geocode.googleapis.com/v4beta/geocode/places/{place_id}?key={PLACES_API_KEY}"
     response = requests.get(url)
     return response.json()
 
