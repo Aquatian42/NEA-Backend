@@ -21,7 +21,7 @@ def startup_event():
 # only allow my website access
 origins = [
     "https://nea.tomdinning.com",
-    "http://localhost:8000"
+    "http://localhost:8000",
 ]
 
 app.add_middleware(
@@ -108,18 +108,19 @@ def get_recent_locations(user_id: int):
         #fetch 20 locations to get 5 unique ones
         locations = s.query(UserLocations).filter(UserLocations.userID == user_id).order_by(UserLocations.locationID.desc()).limit(20).all()
         
-        seen_addresses = []
+        seen_addresses = set()
         unique_locations = []
         
         for loc in locations:
-            while len(unique_locations) < 5: 
-                if loc.address not in seen_addresses:
-                    seen_addresses.add(loc.address)
-                    unique_locations.append({
-                        "latitude": loc.latitude,
-                        "longitude": loc.longitude,
-                        "address": loc.address
-                    })
+            if loc.address not in seen_addresses:
+                seen_addresses.add(loc.address)
+                unique_locations.append({
+                    "latitude": loc.latitude,
+                    "longitude": loc.longitude,
+                    "address": loc.address
+                })
+            if len(unique_locations) >= 5:
+                break
                 
         return unique_locations
 
@@ -129,17 +130,20 @@ class addLocationRequest(BaseModel):
     latitude: float
     address: str
 
-@app.post("/addLocation/{user_id}")
+@app.post("/addLocation")
 def addLocation(request: addLocationRequest):
+    lastlocation = s.query(UserLocations).filter(UserLocations.userID == user_id).order_by(UserLocations.locationID.desc()).limit(1).all()[0]
+
     try:
         with db.session() as s:
-            new_location = UserLocations(
-                userID=int(request.userId), 
-                longitude=request.longitude, 
-                latitude=request.latitude,
-                address=request.address
-            )
-            s.add(new_location)
+            if not lastlocation.address == request.address:
+                new_location = UserLocations(
+                    userID=int(request.userId), 
+                    longitude=request.longitude, 
+                    latitude=request.latitude,
+                    address=request.address
+                )
+                s.add(new_location)
         return {"status": "success"}
         
     except Exception as e:
