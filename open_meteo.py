@@ -40,8 +40,5 @@ def get_past_data(latitude, longitude):
     )}
     hourly_data["temperature_2m"] = hourly_temperature_2m
     hourly_dataframe = pd.DataFrame(data = hourly_data)
-    return hourly_dataframe
-    
-if __name__ == "__main__":
-    print(get_past_data(52.9540223,-1.1549892))
-    
+    return list(hourly_dataframe["temperature_2m"])
+        
