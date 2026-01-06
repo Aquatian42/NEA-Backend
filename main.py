@@ -99,9 +99,8 @@ class ForecastRequest(BaseModel):
 @app.post("/forecast")
 def forecast(request: ForecastRequest):
     try:
-        past_data_df = open_meteo.get_past_data(request.latitude, request.longitude)
-        past_data_list = past_data_df["temperature_2m"].tolist()
-        forecast = hw.forecast_from_data(past_data_list)
+        past_data = open_meteo.get_past_data(request.latitude, request.longitude)
+        forecast = hw.forecast_from_data(past_data)
         return forecast
     except Exception as e:
         return {"status": "error", "message": str(e)}
