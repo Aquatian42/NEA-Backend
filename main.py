@@ -22,6 +22,10 @@ def startup_event():
 origins = [
     "https://nea.tomdinning.com",
     "http://localhost:8000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(
@@ -95,8 +99,9 @@ class ForecastRequest(BaseModel):
 @app.post("/forecast")
 def forecast(request: ForecastRequest):
     try:
-        past_data = open_meteo.get_past_data(request.latitude, request.longitude)
-        forecast = hw.forecast_from_data(past_data)
+        past_data_df = open_meteo.get_past_data(request.latitude, request.longitude)
+        past_data_list = past_data_df["temperature_2m"].tolist()
+        forecast = hw.forecast_from_data(past_data_list)
         return forecast
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -132,11 +137,12 @@ class addLocationRequest(BaseModel):
 
 @app.post("/addLocation")
 def addLocation(request: addLocationRequest):
-    lastlocation = s.query(UserLocations).filter(UserLocations.userID == user_id).order_by(UserLocations.locationID.desc()).limit(1).all()[0]
-
     try:
         with db.session() as s:
-            if not lastlocation.address == request.address:
+            # Check if this is the same as the most recent location to avoid duplicates
+            last_location = s.query(UserLocations).filter(UserLocations.userID == int(request.userId)).order_by(UserLocations.locationID.desc()).first()
+            
+            if not last_location or last_location.address != request.address:
                 new_location = UserLocations(
                     userID=int(request.userId), 
                     longitude=request.longitude, 
